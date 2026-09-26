@@ -180,8 +180,11 @@ export default class ReadingStatusPlugin extends Plugin {
 		this.registerView(
 			DASHBOARD_VIEW_TYPE,
 			(leaf) =>
-				new ReadingDashboardView(leaf, this.storage as StorageService, () =>
-					Date.now(),
+				new ReadingDashboardView(
+					leaf,
+					this.storage as StorageService,
+					() => Date.now(),
+					(path) => void this.resetNoteByPath(path),
 				),
 		);
 		this.addRibbonIcon("book-open", "打开阅读仪表盘", () =>
@@ -349,21 +352,30 @@ export default class ReadingStatusPlugin extends Plugin {
 		new Notice(`已清理 ${removed} 条已删除笔记的记录`);
 	}
 
-	async resetActiveNote(): Promise<void> {
+	/**
+	 * Reset the reading status of one note: drop its record, persist, then
+	 * refresh the status bar, dashboards and graph coloring.
+	 */
+	async resetNoteByPath(path: string): Promise<void> {
 		if (this.storage === null) {
 			return;
 		}
+		if (resetNoteStats(this.storage.getData(), path)) {
+			await this.storage.save();
+		}
+		this.controller?.refreshStatusText();
+		this.refreshDashboards();
+		this.scheduleGraphSync();
+		new Notice(`已重置 ${path} 的阅读状态`);
+	}
+
+	async resetActiveNote(): Promise<void> {
 		const file = this.app.workspace.getActiveFile();
 		if (file === null) {
 			new Notice("当前没有打开的笔记");
 			return;
 		}
-		if (resetNoteStats(this.storage.getData(), file.path)) {
-			await this.storage.save();
-		}
-		this.controller?.refreshStatusText();
-		this.refreshDashboards();
-		new Notice(`已重置 ${file.path} 的阅读状态`);
+		await this.resetNoteByPath(file.path);
 	}
 
 	/** Throttled entry point used on data changes and file creation. */

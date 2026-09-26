@@ -32,6 +32,7 @@ export class ReadingDashboardView extends ItemView {
 		leaf: WorkspaceLeaf,
 		private readonly storage: StorageService,
 		private readonly now: () => number,
+		private readonly onResetRequest: ((path: string) => void) | null = null,
 	) {
 		super(leaf);
 	}
@@ -187,6 +188,17 @@ export class ReadingDashboardView extends ItemView {
 				cls: "reading-dashboard-item-value",
 				text: valueText(summary),
 			});
+			if (this.onResetRequest !== null) {
+				const resetButton = name.createEl("button", {
+					cls: "reading-dashboard-reset",
+					text: "重置",
+					attr: { "aria-label": "重置该笔记的阅读状态", type: "button" },
+				});
+				resetButton.addEventListener("click", (event) => {
+					event.stopPropagation();
+					this.onResetRequest?.(summary.path);
+				});
+			}
 			item.createEl("div", {
 				cls: "reading-dashboard-item-sub",
 				text: `${summary.path} · ${summary.openCount} 次 · ${Math.round(summary.maxProgress * 100)}% · ${formatRelativeTime(summary.lastReadAt, now)}`,
