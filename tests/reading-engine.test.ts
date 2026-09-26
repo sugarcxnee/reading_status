@@ -236,6 +236,51 @@ describe("ReadingEngine time accounting", () => {
 	});
 });
 
+describe("ReadingEngine rename handling", () => {
+	it("moves an exact note record to the new path", () => {
+		const { data, engine } = setup();
+		engine.openNote("数学分析/a.md");
+		engine.applyRename("数学分析/a.md", "数学分析/目录.md");
+		expect(data.notes["数学分析/目录.md"]).toBeTruthy();
+		expect(data.notes["数学分析/a.md"]).toBeUndefined();
+	});
+
+	it("moves every record under a renamed folder prefix", () => {
+		const { data, engine } = setup();
+		engine.openNote("数学分析/上册/a.md");
+		engine.applyRename("数学分析/上册", "数学分析/第一册");
+		expect(data.notes["数学分析/第一册/a.md"]).toBeTruthy();
+		expect(data.notes["数学分析/上册/a.md"]).toBeUndefined();
+	});
+
+	it("keeps tracking the active session under the new path", () => {
+		const { data, clock, engine } = setup();
+		engine.openNote("a.md");
+		engine.applyRename("a.md", "b.md");
+		expect(engine.getActivePath()).toBe("b.md");
+		clock.advance(2 * MIN);
+		engine.flush();
+		expect(data.notes["b.md"].totalReadingMs).toBe(2 * MIN);
+		expect(data.notes["a.md"]).toBeUndefined();
+	});
+
+	it("keeps dedupe state across a rename", () => {
+		const { data, clock, engine } = setup();
+		engine.openNote("a.md");
+		engine.closeActiveNote();
+		engine.applyRename("a.md", "b.md");
+		clock.advance(2 * MIN);
+		engine.openNote("b.md");
+		expect(data.notes["b.md"].openCount).toBe(1);
+	});
+
+	it("ignores renames that match nothing", () => {
+		const { data, engine } = setup();
+		engine.applyRename("ghost.md", "other.md");
+		expect(data.notes).toEqual({});
+	});
+});
+
 function clockAdvanceNoop(): void {
 	// Placeholder to express "time passes without events" in a readable way.
 }

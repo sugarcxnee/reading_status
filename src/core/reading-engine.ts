@@ -104,6 +104,46 @@ export class ReadingEngine {
 		this.settle(this.clock.now());
 	}
 
+	/**
+	 * Move tracked data when a file or folder is renamed or moved. Handles
+	 * both an exact note path and a folder prefix, and keeps the active
+	 * session and dedupe state pointing at the new path.
+	 */
+	applyRename(oldPath: string, newPath: string): void {
+		if (oldPath === newPath) {
+			return;
+		}
+		const oldPrefix = oldPath.endsWith("/") ? oldPath : `${oldPath}/`;
+
+		if (oldPath in this.data.notes) {
+			this.data.notes[newPath] = this.data.notes[oldPath];
+			delete this.data.notes[oldPath];
+		}
+		for (const key of Object.keys(this.data.notes)) {
+			if (key.startsWith(oldPrefix)) {
+				const moved = `${newPath}/${key.slice(oldPrefix.length)}`;
+				this.data.notes[moved] = this.data.notes[key];
+				delete this.data.notes[key];
+			}
+		}
+
+		for (const [key, value] of [...this.lastCloseAt]) {
+			if (key === oldPath) {
+				this.lastCloseAt.set(newPath, value);
+				this.lastCloseAt.delete(key);
+			} else if (key.startsWith(oldPrefix)) {
+				this.lastCloseAt.set(`${newPath}/${key.slice(oldPrefix.length)}`, value);
+				this.lastCloseAt.delete(key);
+			}
+		}
+
+		if (this.activePath === oldPath) {
+			this.activePath = newPath;
+		} else if (this.activePath !== null && this.activePath.startsWith(oldPrefix)) {
+			this.activePath = `${newPath}/${this.activePath.slice(oldPrefix.length)}`;
+		}
+	}
+
 	private settle(now: number): void {
 		const path = this.activePath;
 		if (path === null || this.boundaryAt === null || !this.focused) {

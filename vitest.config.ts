@@ -6,7 +6,7 @@ export default defineConfig({
 		environment: "node",
 		coverage: {
 			provider: "v8",
-			include: ["src/core/**/*.ts"],
+			include: ["src/core/**/*.ts", "src/controller.ts", "src/obsidian-adapter.ts"],
 			reporter: ["text", "text-summary"]
 		}
 	}
