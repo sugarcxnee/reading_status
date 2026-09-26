@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	showStatusBar: true,
 	excludedPaths: [],
 	dataRetentionDays: 0,
+	graphColorEnabled: true,
 };
 
 export function createDefaultSettings(): PluginSettings {
@@ -71,6 +72,9 @@ export function mergeSettings(stored: unknown): PluginSettings {
 	}
 	if (isNonNegativeInteger(source.dataRetentionDays)) {
 		merged.dataRetentionDays = source.dataRetentionDays;
+	}
+	if (typeof source.graphColorEnabled === "boolean") {
+		merged.graphColorEnabled = source.graphColorEnabled;
 	}
 	return merged;
 }

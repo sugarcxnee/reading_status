@@ -14,6 +14,8 @@ export interface PluginSettings {
 	excludedPaths: string[];
 	/** How many days of daily aggregates to keep. 0 means forever. */
 	dataRetentionDays: number;
+	/** Color notes in the global graph by reading progress. */
+	graphColorEnabled: boolean;
 }
 
 /** Per-note reading statistics, keyed by vault-relative note path. */

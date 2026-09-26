@@ -16,6 +16,7 @@ describe("createDefaultSettings", () => {
 			showStatusBar: true,
 			excludedPaths: [] as string[],
 			dataRetentionDays: 0,
+			graphColorEnabled: true,
 		});
 	});
 });

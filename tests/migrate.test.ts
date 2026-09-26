@@ -13,6 +13,7 @@ describe("migrate", () => {
 				showStatusBar: true,
 				excludedPaths: [],
 				dataRetentionDays: 0,
+				graphColorEnabled: true,
 			},
 			notes: {},
 			days: {},
