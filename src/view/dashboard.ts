@@ -1,5 +1,9 @@
 import { ItemView, TFile, type WorkspaceLeaf } from "obsidian";
-import { formatDuration, formatRelativeTime } from "../core/format";
+import {
+	formatDuration,
+	formatRelativeTime,
+} from "../core/format";
+import { localDayKey } from "../core/time";
 import {
 	getGlobalStats,
 	listNoteSummaries,
@@ -92,11 +96,13 @@ export class ReadingDashboardView extends ItemView {
 			summaries.length > 0
 				? sortByMetric(summaries, "totalReadingMs").slice(0, TOP_LIST_SIZE)
 				: summaries,
+			now,
 			(summary) => formatDuration(summary.totalReadingMs),
 		);
 		this.renderList(
 			this.recentEl,
 			sortByLastRead(summaries).slice(0, TOP_LIST_SIZE),
+			now,
 			(summary) => formatRelativeTime(summary.lastReadAt, now),
 		);
 	}
@@ -151,6 +157,7 @@ export class ReadingDashboardView extends ItemView {
 	private renderList(
 		container: HTMLElement,
 		summaries: ReturnType<typeof listNoteSummaries>,
+		now: number,
 		valueText: (summary: ReturnType<typeof listNoteSummaries>[number]) => string,
 	): void {
 		container.empty();
@@ -165,6 +172,10 @@ export class ReadingDashboardView extends ItemView {
 			const item = container.createEl("li", {
 				cls: "reading-dashboard-item",
 			});
+			item.setAttribute(
+				"title",
+				`首次阅读 ${localDayKey(summary.firstReadAt)} · 最近阅读 ${formatRelativeTime(summary.lastReadAt, now)}`,
+			);
 			const name = item.createEl("div", {
 				cls: "reading-dashboard-item-main",
 			});
@@ -178,7 +189,7 @@ export class ReadingDashboardView extends ItemView {
 			});
 			item.createEl("div", {
 				cls: "reading-dashboard-item-sub",
-				text: `${summary.path} · ${summary.openCount} 次 · ${Math.round(summary.maxProgress * 100)}%`,
+				text: `${summary.path} · ${summary.openCount} 次 · ${Math.round(summary.maxProgress * 100)}% · ${formatRelativeTime(summary.lastReadAt, now)}`,
 			});
 			item.addEventListener("click", () => this.openNote(summary.path));
 		}
