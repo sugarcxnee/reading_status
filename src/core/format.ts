@@ -1,5 +1,6 @@
 import { computeChapterStats } from "./chapters";
 import type { Section } from "./chapters";
+import { formatRemainingTime } from "./estimate";
 import { localDayKey } from "./time";
 
 /** Reading duration in a human-friendly compact form. */
@@ -17,6 +18,8 @@ export interface StatusBarModel {
 	progress: number;
 	/** Remaining chapter count, or null when the note has no chapters. */
 	remainingChapters: number | null;
+	/** Estimated remaining reading time, or null when unknown. */
+	remainingReadingMs?: number | null;
 }
 
 /** Status bar line for the active note. */
@@ -27,6 +30,12 @@ export function formatStatusBar(model: StatusBarModel): string {
 		formatDuration(model.totalReadingMs),
 		`${percent}%`,
 	];
+	if (model.remainingReadingMs !== null && model.remainingReadingMs !== undefined) {
+		const estimate = formatRemainingTime(model.remainingReadingMs);
+		if (estimate !== "") {
+			parts.push(`预计剩 ${estimate}`);
+		}
+	}
 	if (model.remainingChapters !== null) {
 		parts.push(`剩 ${model.remainingChapters} 章`);
 	}
@@ -35,7 +44,8 @@ export function formatStatusBar(model: StatusBarModel): string {
 
 /**
  * Build the status bar model from a stored record and the sections parsed
- * from the current document. Notes without chapters omit the chapter count.
+ * from the current document. Notes without chapters omit the chapter count;
+ * a null estimate omits the remaining-time segment.
  */
 export function buildStatusBarModel(
 	record: {
@@ -45,6 +55,7 @@ export function buildStatusBarModel(
 		readSections: string[];
 	},
 	sections: Section[],
+	remainingReadingMs: number | null = null,
 ): StatusBarModel {
 	const stats = computeChapterStats(sections, record.readSections);
 	return {
@@ -52,6 +63,7 @@ export function buildStatusBarModel(
 		totalReadingMs: record.totalReadingMs,
 		progress: record.maxProgress,
 		remainingChapters: stats.total > 0 ? stats.remaining : null,
+		remainingReadingMs,
 	};
 }
 

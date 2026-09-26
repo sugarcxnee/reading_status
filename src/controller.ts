@@ -1,5 +1,9 @@
 import { parseHeadings, updateReadSections } from "./core/chapters";
 import type { Section } from "./core/chapters";
+import {
+	countReadingUnits,
+	estimateRemainingReadingMs,
+} from "./core/estimate";
 import { buildStatusBarModel, formatStatusBar } from "./core/format";
 import { mergeMaxProgress } from "./core/progress";
 import { ReadingEngine } from "./core/reading-engine";
@@ -35,6 +39,8 @@ export class ReadingStatusController {
 
 	private engine: ReadingEngine | null = null;
 	private sections: Section[] = [];
+	/** Reading units of the active note body, or null when unavailable. */
+	private activeTotalUnits: number | null = null;
 	private readonly unsubscribes: Unsubscribe[] = [];
 	private saveTimer: ReturnType<typeof setTimeout> | null = null;
 	private scrollTimer: ReturnType<typeof setTimeout> | null = null;
@@ -134,9 +140,11 @@ export class ReadingStatusController {
 		if (path === null) {
 			this.engine.closeActiveNote();
 			this.sections = [];
+			this.activeTotalUnits = null;
 		} else {
 			this.engine.openNote(path);
 			this.sections = [];
+			this.activeTotalUnits = null;
 			void this.loadSections(path);
 		}
 		this.refreshStatus();
@@ -149,8 +157,9 @@ export class ReadingStatusController {
 			return;
 		}
 		const level = this.storage.getData().settings.chapterLevel;
-		this.sections =
-			text === null ? [] : parseHeadings(text, level);
+		this.sections = text === null ? [] : parseHeadings(text, level);
+		this.activeTotalUnits =
+			text === null ? null : countReadingUnits(text);
 		this.refreshStatus();
 	}
 
@@ -209,8 +218,18 @@ export class ReadingStatusController {
 			this.onStatusTextChanged("");
 			return;
 		}
+		const remainingReadingMs =
+			this.activeTotalUnits === null
+				? null
+				: estimateRemainingReadingMs(
+						this.activeTotalUnits,
+						record.maxProgress,
+						this.storage.getData().settings.readingUnitsPerMinute,
+					);
 		this.onStatusTextChanged(
-			formatStatusBar(buildStatusBarModel(record, this.sections)),
+			formatStatusBar(
+				buildStatusBarModel(record, this.sections, remainingReadingMs),
+			),
 		);
 	}
 

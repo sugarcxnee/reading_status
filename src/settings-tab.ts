@@ -128,6 +128,23 @@ export class ReadingStatusSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("阅读速度（字/分钟）")
+			.setDesc("用于估算剩余阅读时间，中文按字数、英文按词数计算")
+			.addText((text) =>
+				text
+					.setValue(String(settings.readingUnitsPerMinute))
+					.onChange(async (value) => {
+						const speed = Number.parseInt(value, 10);
+						if (!Number.isFinite(speed) || speed < 1) {
+							return;
+						}
+						await this.plugin.updateSettings((data) => {
+							data.settings.readingUnitsPerMinute = speed;
+						});
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName("数据管理")
 			.setDesc("导出、导入、清理与重置入口也在命令面板中可用")
 			.addButton((button) =>

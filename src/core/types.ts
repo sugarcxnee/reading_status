@@ -16,6 +16,8 @@ export interface PluginSettings {
 	dataRetentionDays: number;
 	/** Color notes in the global graph by reading progress. */
 	graphColorEnabled: boolean;
+	/** Reading speed in units (CJK characters or words) per minute. */
+	readingUnitsPerMinute: number;
 }
 
 /** Per-note reading statistics, keyed by vault-relative note path. */

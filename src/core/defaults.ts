@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	excludedPaths: [],
 	dataRetentionDays: 0,
 	graphColorEnabled: true,
+	readingUnitsPerMinute: 350,
 };
 
 export function createDefaultSettings(): PluginSettings {
@@ -75,6 +76,9 @@ export function mergeSettings(stored: unknown): PluginSettings {
 	}
 	if (typeof source.graphColorEnabled === "boolean") {
 		merged.graphColorEnabled = source.graphColorEnabled;
+	}
+	if (isPositiveNumber(source.readingUnitsPerMinute)) {
+		merged.readingUnitsPerMinute = source.readingUnitsPerMinute;
 	}
 	return merged;
 }

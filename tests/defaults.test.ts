@@ -17,6 +17,7 @@ describe("createDefaultSettings", () => {
 			excludedPaths: [] as string[],
 			dataRetentionDays: 0,
 			graphColorEnabled: true,
+			readingUnitsPerMinute: 350,
 		});
 	});
 });
@@ -56,6 +57,7 @@ describe("mergeSettings", () => {
 			showStatusBar: "yes",
 			excludedPaths: "日记",
 			dataRetentionDays: true,
+			readingUnitsPerMinute: "fast",
 		};
 		const merged = mergeSettings(stored);
 		expect(merged).toEqual(createDefaultSettings());

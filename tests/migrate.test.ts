@@ -14,6 +14,7 @@ describe("migrate", () => {
 				excludedPaths: [],
 				dataRetentionDays: 0,
 				graphColorEnabled: true,
+				readingUnitsPerMinute: 350,
 			},
 			notes: {},
 			days: {},

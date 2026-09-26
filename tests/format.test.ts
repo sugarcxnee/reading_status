@@ -43,6 +43,51 @@ describe("formatStatusBar", () => {
 		).toBe("阅读 1 次 · 0 分钟 · 0%");
 	});
 
+	it("appends the remaining reading time when known", () => {
+		expect(
+			formatStatusBar({
+				openCount: 2,
+				totalReadingMs: 0,
+				progress: 0,
+				remainingChapters: null,
+				remainingReadingMs: 8 * 60_000,
+			}),
+		).toBe("阅读 2 次 · 0 分钟 · 0% · 预计剩 8 分钟");
+	});
+
+	it("appends the estimate before the chapter count", () => {
+		expect(
+			formatStatusBar({
+				openCount: 1,
+				totalReadingMs: 0,
+				progress: 0.4,
+				remainingChapters: 3,
+				remainingReadingMs: 90 * 60_000,
+			}),
+		).toBe("阅读 1 次 · 0 分钟 · 40% · 预计剩 1.5 小时 · 剩 3 章");
+	});
+
+	it("omits the estimate when it is unknown or under a minute", () => {
+		expect(
+			formatStatusBar({
+				openCount: 1,
+				totalReadingMs: 0,
+				progress: 0,
+				remainingChapters: null,
+				remainingReadingMs: null,
+			}),
+		).toBe("阅读 1 次 · 0 分钟 · 0%");
+		expect(
+			formatStatusBar({
+				openCount: 1,
+				totalReadingMs: 0,
+				progress: 1,
+				remainingChapters: null,
+				remainingReadingMs: 30_000,
+			}),
+		).toBe("阅读 1 次 · 0 分钟 · 100%");
+	});
+
 	it("rounds progress to whole percent", () => {
 		expect(
 			formatStatusBar({

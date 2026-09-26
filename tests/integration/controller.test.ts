@@ -275,6 +275,39 @@ describe("ReadingStatusController", () => {
 		expect(changes).toHaveLength(1);
 	});
 
+	it("shows the estimated remaining reading time for the active note", async () => {
+		const { controller, host, statusTexts } = setup();
+		await controller.start();
+		// 3500 CJK units at the default speed of 350 per minute = 10 minutes.
+		host.texts.set("long.md", "数".repeat(3500));
+		host.fireFileOpen("long.md");
+		await flushMicrotasks();
+		expect(statusTexts.at(-1)).toBe("阅读 1 次 · 0 分钟 · 0% · 预计剩 10 分钟");
+		host.scrollRatio = 0.5;
+		host.fireScroll();
+		vi.advanceTimersByTime(200);
+		expect(statusTexts.at(-1)).toBe("阅读 1 次 · 0 分钟 · 50% · 预计剩 5 分钟");
+	});
+
+	it("omits the estimate when the note text is unavailable", async () => {
+		const { controller, host, statusTexts } = setup();
+		await controller.start();
+		host.fireFileOpen("a.md");
+		await flushMicrotasks();
+		expect(statusTexts.at(-1)).toBe("阅读 1 次 · 0 分钟 · 0%");
+	});
+
+	it("uses the configured reading speed for the estimate", async () => {
+		const { controller, host, statusTexts } = setup({
+			readingUnitsPerMinute: 700,
+		});
+		await controller.start();
+		host.texts.set("long.md", "数".repeat(3500));
+		host.fireFileOpen("long.md");
+		await flushMicrotasks();
+		expect(statusTexts.at(-1)).toContain("预计剩 5 分钟");
+	});
+
 	it("flushes and saves on stop", async () => {
 		const { controller, host, clock, storage, getSaveCount } = setup();
 		await controller.start();
