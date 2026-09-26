@@ -5,3 +5,4 @@ main.js
 .obsidian/
 coverage/
 *.tsbuildinfo
+data.json
