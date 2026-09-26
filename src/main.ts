@@ -15,7 +15,14 @@ import {
 	pruneDeletedNotes,
 	resetNoteStats,
 } from "./core/maintenance";
+import {
+	buildReadingColorGroups,
+	mergeColorGroups,
+} from "./core/graphColors";
 import type { PluginData, PluginSettings } from "./core/types";
+
+const GRAPH_CONFIG_PATH = ".obsidian/graph.json";
+const GRAPH_SYNC_INTERVAL_MS = 30_000;
 
 const SCROLLER_SELECTOR = ".cm-scroller, .markdown-preview-view";
 
@@ -136,6 +143,8 @@ export default class ReadingStatusPlugin extends Plugin {
 	private controller: ReadingStatusController | null = null;
 	private storage: StorageService | null = null;
 	private statusBarItem: HTMLElement | null = null;
+	private lastGraphSyncAt = 0;
+	private graphSyncTimer: ReturnType<typeof setTimeout> | null = null;
 
 	async onload(): Promise<void> {
 		const store: DataStore = {
@@ -154,8 +163,19 @@ export default class ReadingStatusPlugin extends Plugin {
 		};
 		this.controller.onDataChanged = () => {
 			this.refreshDashboards();
+			this.scheduleGraphSync();
 		};
 		this.statusBarItem = this.addStatusBarItem();
+
+		// New files should join the unread bucket without waiting for a
+		// reading event.
+		this.registerEvent(
+			this.app.vault.on("create", (file) => {
+				if (file instanceof TFile && file.extension === "md") {
+					this.scheduleGraphSync();
+				}
+			}),
+		);
 
 		this.registerView(
 			DASHBOARD_VIEW_TYPE,
@@ -192,12 +212,20 @@ export default class ReadingStatusPlugin extends Plugin {
 			name: "重置当前笔记的阅读状态",
 			callback: () => void this.resetActiveNote(),
 		});
+		this.addCommand({
+			id: "update-graph-colors",
+			name: "更新关系图谱颜色",
+			callback: () => {
+				void this.syncGraphColors();
+			},
+		});
 		this.addSettingTab(
 			new ReadingStatusSettingTab(this.app, this),
 		);
 
 		await this.controller.start();
 		await this.enforceRetention();
+		await this.syncGraphColors();
 		this.applyStatusBarVisibility();
 	}
 
@@ -206,6 +234,10 @@ export default class ReadingStatusPlugin extends Plugin {
 		this.controller = null;
 		this.storage = null;
 		this.statusBarItem = null;
+		if (this.graphSyncTimer !== null) {
+			clearTimeout(this.graphSyncTimer);
+			this.graphSyncTimer = null;
+		}
 		for (const leaf of this.app.workspace.getLeavesOfType(DASHBOARD_VIEW_TYPE)) {
 			leaf.detach();
 		}
@@ -332,5 +364,100 @@ export default class ReadingStatusPlugin extends Plugin {
 		this.controller?.refreshStatusText();
 		this.refreshDashboards();
 		new Notice(`已重置 ${file.path} 的阅读状态`);
+	}
+
+	/** Throttled entry point used on data changes and file creation. */
+	private scheduleGraphSync(): void {
+		const elapsed = Date.now() - this.lastGraphSyncAt;
+		if (elapsed >= GRAPH_SYNC_INTERVAL_MS) {
+			this.lastGraphSyncAt = Date.now();
+			void this.syncGraphColors();
+			return;
+		}
+		if (this.graphSyncTimer === null) {
+			this.graphSyncTimer = setTimeout(
+				() => {
+					this.graphSyncTimer = null;
+					this.lastGraphSyncAt = Date.now();
+					void this.syncGraphColors();
+				},
+				GRAPH_SYNC_INTERVAL_MS - elapsed,
+			);
+		}
+	}
+
+	/**
+	 * Rewrite only the colorGroups field of the global graph config, keeping
+	 * every other option (and any user-created groups) untouched. When the
+	 * feature is disabled, the plugin's own groups are removed and the graph
+	 * falls back to its default appearance.
+	 */
+	async syncGraphColors(): Promise<void> {
+		if (this.storage === null) {
+			return;
+		}
+		const data = this.storage.getData();
+		const adapter = this.app.vault.adapter;
+		let raw = "{}";
+		try {
+			if (await adapter.exists(GRAPH_CONFIG_PATH)) {
+				raw = await adapter.read(GRAPH_CONFIG_PATH);
+			}
+		} catch (error) {
+			console.warn("Reading Status: 无法读取关系图谱配置", error);
+			return;
+		}
+
+		let config: Record<string, unknown>;
+		try {
+			config = raw.trim() === "" ? {} : (JSON.parse(raw) as Record<string, unknown>);
+		} catch (error) {
+			console.warn("Reading Status: 关系图谱配置不是有效 JSON，已跳过着色", error);
+			return;
+		}
+
+		const generated = data.settings.graphColorEnabled
+			? buildReadingColorGroups(this.buildProgressIndex(data))
+			: [];
+		const merged = mergeColorGroups(config.colorGroups, generated);
+		const changed = JSON.stringify(merged) !== JSON.stringify(config.colorGroups ?? null);
+		config.colorGroups = merged;
+		if (!changed) {
+			return;
+		}
+		try {
+			await adapter.write(GRAPH_CONFIG_PATH, JSON.stringify(config, null, 2));
+		} catch (error) {
+			console.warn("Reading Status: 无法写入关系图谱配置", error);
+			return;
+		}
+		this.refreshGraphViews();
+	}
+
+	/** Progress of every markdown file; null means never read. */
+	private buildProgressIndex(
+		data: PluginData,
+	): Record<string, number | null> {
+		const progressByPath: Record<string, number | null> = {};
+		for (const file of this.app.vault.getMarkdownFiles()) {
+			progressByPath[file.path] = data.notes[file.path]?.maxProgress ?? null;
+		}
+		return progressByPath;
+	}
+
+	/**
+	 * Re-set the view state of open graph leaves so they reload the config.
+	 * If this ever fails, closing and reopening the graph applies the new
+	 * colors.
+	 */
+	private refreshGraphViews(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType("graph")) {
+			try {
+				const state = leaf.getViewState();
+				void leaf.setViewState(state);
+			} catch (error) {
+				console.warn("Reading Status: 刷新关系图谱失败，请手动重新打开图谱", error);
+			}
+		}
 	}
 }

@@ -116,6 +116,18 @@ export class ReadingStatusSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("关系图谱着色")
+			.setDesc("在全局关系图谱中按阅读进度给笔记着色（浅色未读，深色已读完）")
+			.addToggle((toggle) =>
+				toggle.setValue(settings.graphColorEnabled).onChange(async (value) => {
+					await this.plugin.updateSettings((data) => {
+						data.settings.graphColorEnabled = value;
+					});
+					await this.plugin.syncGraphColors();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName("数据管理")
 			.setDesc("导出、导入、清理与重置入口也在命令面板中可用")
 			.addButton((button) =>
