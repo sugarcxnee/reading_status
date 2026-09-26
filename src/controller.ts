@@ -90,6 +90,11 @@ export class ReadingStatusController {
 		this.syncActiveView();
 	}
 
+	/** Force a status bar refresh (used after data management actions). */
+	refreshStatusText(): void {
+		this.refreshStatus();
+	}
+
 	stop(): void {
 		if (!this.running) {
 			return;

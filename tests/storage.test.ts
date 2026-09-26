@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { StorageService, type DataStore } from "../src/core/storage";
 import { CURRENT_SCHEMA_VERSION } from "../src/core/migrate";
+import { createDefaultData } from "../src/core/defaults";
 import type { PluginData } from "../src/core/types";
 
 function createMemoryStore(initial: unknown = null): DataStore & {
@@ -73,5 +74,27 @@ describe("StorageService", () => {
 		data.days["2026-09-26"] = { readingMs: 5, openCount: 1 };
 		await storage.save();
 		expect(store.saved[0].days["2026-09-26"]).toEqual({ readingMs: 5, openCount: 1 });
+	});
+
+	it("replaceData swaps content in place and persists", async () => {
+		const store = createMemoryStore(null);
+		const storage = new StorageService(store);
+		await storage.load();
+		const reference = storage.getData();
+		const incoming = createDefaultData();
+		incoming.settings.chapterLevel = 5;
+		incoming.notes["imported.md"] = {
+			openCount: 1,
+			totalReadingMs: 1,
+			firstReadAt: 1,
+			lastReadAt: 1,
+			maxProgress: 0,
+			readSections: [],
+		};
+		await storage.replaceData(incoming);
+		expect(storage.getData()).toBe(reference);
+		expect(reference.settings.chapterLevel).toBe(5);
+		expect(reference.notes["imported.md"]).toBeTruthy();
+		expect(store.saved[0].notes["imported.md"]).toBeTruthy();
 	});
 });

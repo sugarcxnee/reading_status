@@ -1,4 +1,4 @@
-import { MarkdownView, Plugin, TFile } from "obsidian";
+import { MarkdownView, Notice, Plugin, TFile, normalizePath } from "obsidian";
 import { computeScrollRatio } from "./core/progress";
 import { SystemClock } from "./core/time";
 import { StorageService, type DataStore } from "./core/storage";
@@ -8,6 +8,14 @@ import {
 	DASHBOARD_VIEW_TYPE,
 	ReadingDashboardView,
 } from "./view/dashboard";
+import { ReadingStatusSettingTab } from "./settings-tab";
+import { serializeExport, parseImport } from "./core/io";
+import {
+	applyDataRetention,
+	pruneDeletedNotes,
+	resetNoteStats,
+} from "./core/maintenance";
+import type { PluginData, PluginSettings } from "./core/types";
 
 const SCROLLER_SELECTOR = ".cm-scroller, .markdown-preview-view";
 
@@ -164,8 +172,33 @@ export default class ReadingStatusPlugin extends Plugin {
 			name: "打开阅读仪表盘",
 			callback: () => void this.activateDashboard(),
 		});
+		this.addCommand({
+			id: "export-reading-data",
+			name: "导出阅读数据为 JSON",
+			callback: () => void this.exportDataToFile(),
+		});
+		this.addCommand({
+			id: "import-reading-data",
+			name: "从 JSON 导入阅读数据",
+			callback: () => void this.importDataFromFilePicker(),
+		});
+		this.addCommand({
+			id: "cleanup-deleted-notes",
+			name: "清理已删除笔记的阅读记录",
+			callback: () => void this.cleanupDeletedNotes(),
+		});
+		this.addCommand({
+			id: "reset-active-note",
+			name: "重置当前笔记的阅读状态",
+			callback: () => void this.resetActiveNote(),
+		});
+		this.addSettingTab(
+			new ReadingStatusSettingTab(this.app, this),
+		);
 
 		await this.controller.start();
+		await this.enforceRetention();
+		this.applyStatusBarVisibility();
 	}
 
 	onunload(): void {
@@ -192,5 +225,112 @@ export default class ReadingStatusPlugin extends Plugin {
 				leaf.view.refresh();
 			}
 		}
+	}
+
+	getSettings(): PluginSettings {
+		return (this.storage as StorageService).getData().settings;
+	}
+
+	async updateSettings(mutator: (data: PluginData) => void): Promise<void> {
+		if (this.storage === null) {
+			return;
+		}
+		mutator(this.storage.getData());
+		await this.storage.save();
+		this.refreshDashboards();
+	}
+
+	applyStatusBarVisibility(): void {
+		if (this.statusBarItem === null || this.storage === null) {
+			return;
+		}
+		this.statusBarItem.style.display = this.getSettings().showStatusBar
+			? ""
+			: "none";
+	}
+
+	async enforceRetention(): Promise<void> {
+		if (this.storage === null) {
+			return;
+		}
+		if (applyDataRetention(this.storage.getData(), Date.now())) {
+			await this.storage.save();
+		}
+	}
+
+	async exportDataToFile(): Promise<void> {
+		if (this.storage === null) {
+			return;
+		}
+		const path = normalizePath("reading-status-export.json");
+		const content = serializeExport(this.storage.getData());
+		const existing = this.app.vault.getAbstractFileByPath(path);
+		if (existing instanceof TFile) {
+			await this.app.vault.modify(existing, content);
+		} else {
+			await this.app.vault.create(path, content);
+		}
+		new Notice(`已导出阅读数据到 ${path}`);
+	}
+
+	async importDataFromFilePicker(): Promise<void> {
+		const input = document.createElement("input");
+		input.type = "file";
+		input.accept = ".json,application/json";
+		input.addEventListener("change", () => {
+			const file = input.files?.[0];
+			if (file === undefined) {
+				return;
+			}
+			void file
+				.text()
+				.then((text) => this.importData(text))
+				.catch((error: unknown) => {
+					const message = error instanceof Error ? error.message : String(error);
+					new Notice(`导入失败：${message}`);
+				});
+		});
+		input.click();
+	}
+
+	private async importData(text: string): Promise<void> {
+		if (this.storage === null) {
+			return;
+		}
+		const imported = parseImport(text);
+		await this.storage.replaceData(imported);
+		this.controller?.refreshStatusText();
+		this.refreshDashboards();
+		new Notice("阅读数据导入成功");
+	}
+
+	async cleanupDeletedNotes(): Promise<void> {
+		if (this.storage === null) {
+			return;
+		}
+		const existing = new Set(this.app.vault.getMarkdownFiles().map((f) => f.path));
+		const removed = pruneDeletedNotes(this.storage.getData(), existing);
+		if (removed > 0) {
+			await this.storage.save();
+		}
+		this.refreshDashboards();
+		new Notice(`已清理 ${removed} 条已删除笔记的记录`);
+	}
+
+	async resetActiveNote(): Promise<void> {
+		if (this.storage === null) {
+			return;
+		}
+		const file = this.app.workspace.getActiveFile();
+		if (file === null) {
+			new Notice("当前没有打开的笔记");
+			return;
+		}
+		if (resetNoteStats(this.storage.getData(), file.path)) {
+			await this.storage.save();
+		}
+		this.controller?.refreshStatusText();
+		this.refreshDashboards();
+		new Notice(`已重置 ${file.path} 的阅读状态`);
 	}
 }

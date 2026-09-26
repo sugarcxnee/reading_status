@@ -41,4 +41,17 @@ export class StorageService {
 	async save(): Promise<void> {
 		await this.store.save(this.getData());
 	}
+
+	/**
+	 * Replace the stored content in place, keeping the same object identity
+	 * so live holders (the reading engine) observe the imported values.
+	 */
+	async replaceData(incoming: PluginData): Promise<void> {
+		const current = this.getData();
+		current.schemaVersion = incoming.schemaVersion;
+		current.settings = incoming.settings;
+		current.notes = incoming.notes;
+		current.days = incoming.days;
+		await this.save();
+	}
 }
