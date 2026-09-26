@@ -1,9 +1,9 @@
-/* Reading Status dashboard. All colors come from Obsidian CSS variables so
-   light and dark themes work without overrides. Themes and plugins that draw
-   a workspace image behind transparent views often make the background
-   variables translucent, so the alpha channel is forced back to 1 with
-   relative color syntax; the plain variable stays as a fallback for engines
-   without that syntax. */
+/* Reading Status dashboard. Card colors come from Obsidian CSS variables.
+   The root background must be fully opaque because themes and background
+   image plugins commonly turn the background variables translucent; theme
+   variables therefore cannot be trusted here. Solid colors keyed on the
+   body theme classes (set by Obsidian for dark/light) guarantee coverage
+   in both modes. */
 
 .reading-dashboard {
 	padding: 12px;
@@ -11,8 +11,11 @@
 	flex-direction: column;
 	gap: 10px;
 	min-height: 100%;
-	background-color: var(--background-primary);
-	background-color: rgb(from var(--background-primary) r g b / 1);
+	background-color: #ffffff;
+}
+
+body.theme-dark .reading-dashboard {
+	background-color: #1b1b1b;
 }
 
 .reading-dashboard-stats {
