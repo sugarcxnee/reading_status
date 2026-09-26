@@ -8,6 +8,7 @@ import {
 	DASHBOARD_VIEW_TYPE,
 	ReadingDashboardView,
 } from "./view/dashboard";
+import { ResetConfirmModal } from "./view/reset-confirm-modal";
 import { ReadingStatusSettingTab } from "./settings-tab";
 import { serializeExport, parseImport } from "./core/io";
 import {
@@ -184,7 +185,7 @@ export default class ReadingStatusPlugin extends Plugin {
 					leaf,
 					this.storage as StorageService,
 					() => Date.now(),
-					(path) => void this.resetNoteByPath(path),
+					(path) => this.confirmReset(path),
 				),
 		);
 		this.addRibbonIcon("book-open", "打开阅读仪表盘", () =>
@@ -350,6 +351,13 @@ export default class ReadingStatusPlugin extends Plugin {
 		}
 		this.refreshDashboards();
 		new Notice(`已清理 ${removed} 条已删除笔记的记录`);
+	}
+
+	/** Ask for confirmation, then reset. Used by the dashboard buttons. */
+	private confirmReset(path: string): void {
+		new ResetConfirmModal(this.app, path, () => {
+			void this.resetNoteByPath(path);
+		}).open();
 	}
 
 	/**

@@ -107,6 +107,20 @@
 	border-color: var(--text-error);
 }
 
+/* Reset confirmation dialog */
+
+.reading-reset-modal-message {
+	margin-top: 4px;
+	color: var(--text-normal);
+}
+
+.reading-reset-modal-buttons {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 16px;
+}
+
 .reading-dashboard-item-sub {
 	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
