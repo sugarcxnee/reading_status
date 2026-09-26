@@ -30,6 +30,8 @@ const DEFAULT_CONFIG: ControllerConfig = {
  */
 export class ReadingStatusController {
 	onStatusTextChanged: (text: string) => void = () => {};
+	/** Notified after a debounced save persisted the current data. */
+	onDataChanged: () => void = () => {};
 
 	private engine: ReadingEngine | null = null;
 	private sections: Section[] = [];
@@ -214,6 +216,7 @@ export class ReadingStatusController {
 		this.saveTimer = setTimeout(() => {
 			this.saveTimer = null;
 			void this.storage.save();
+			this.onDataChanged();
 		}, this.config.saveDebounceMs);
 	}
 }

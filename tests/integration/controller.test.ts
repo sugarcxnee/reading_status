@@ -264,6 +264,17 @@ describe("ReadingStatusController", () => {
 		expect(getSaveCount()).toBeGreaterThanOrEqual(1);
 	});
 
+	it("notifies data listeners after the debounced save", async () => {
+		const { controller, host } = setup();
+		await controller.start();
+		const changes: number[] = [];
+		controller.onDataChanged = () => changes.push(1);
+		host.fireFileOpen("a.md");
+		await flushMicrotasks();
+		vi.advanceTimersByTime(3000);
+		expect(changes).toHaveLength(1);
+	});
+
 	it("flushes and saves on stop", async () => {
 		const { controller, host, clock, storage, getSaveCount } = setup();
 		await controller.start();

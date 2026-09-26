@@ -1,5 +1,6 @@
 import { computeChapterStats } from "./chapters";
 import type { Section } from "./chapters";
+import { localDayKey } from "./time";
 
 /** Reading duration in a human-friendly compact form. */
 export function formatDuration(ms: number): string {
@@ -52,4 +53,22 @@ export function buildStatusBarModel(
 		progress: record.maxProgress,
 		remainingChapters: stats.total > 0 ? stats.remaining : null,
 	};
+}
+
+/** Compact relative time for "last read" displays. */
+export function formatRelativeTime(timestamp: number, now: number): string {
+	const elapsed = now - timestamp;
+	if (elapsed < 60_000) {
+		return "刚刚";
+	}
+	if (elapsed < 3_600_000) {
+		return `${Math.floor(elapsed / 60_000)} 分钟前`;
+	}
+	if (elapsed < 86_400_000) {
+		return `${Math.floor(elapsed / 3_600_000)} 小时前`;
+	}
+	if (elapsed < 7 * 86_400_000) {
+		return `${Math.floor(elapsed / 86_400_000)} 天前`;
+	}
+	return localDayKey(timestamp);
 }

@@ -1,1 +1,102 @@
-/* Reading Status plugin styles. Populated with dashboard styles in later stages. */
+/* Reading Status dashboard. All colors come from Obsidian CSS variables so
+   light and dark themes work without overrides. */
+
+.reading-dashboard {
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.reading-dashboard-stats {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 8px;
+}
+
+.reading-dashboard-stat {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 8px 10px;
+	background-color: var(--background-secondary);
+}
+
+.reading-dashboard-stat-label {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.reading-dashboard-stat-value {
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+.reading-dashboard-filters {
+	display: flex;
+	gap: 8px;
+}
+
+.reading-dashboard-input {
+	flex: 1;
+	min-width: 0;
+}
+
+.reading-dashboard-heading {
+	margin: 6px 0 2px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.reading-dashboard-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.reading-dashboard-item {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 6px 8px;
+	cursor: pointer;
+}
+
+.reading-dashboard-item:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.reading-dashboard-item-main {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	align-items: baseline;
+}
+
+.reading-dashboard-item-name {
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: 500;
+}
+
+.reading-dashboard-item-value {
+	color: var(--text-muted);
+	flex-shrink: 0;
+	font-size: var(--font-ui-smaller);
+}
+
+.reading-dashboard-item-sub {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reading-dashboard-empty {
+	color: var(--text-faint);
+	padding: 4px 8px;
+}

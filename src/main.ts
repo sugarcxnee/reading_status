@@ -4,6 +4,10 @@ import { SystemClock } from "./core/time";
 import { StorageService, type DataStore } from "./core/storage";
 import { ReadingStatusController } from "./controller";
 import type { Host } from "./obsidian-adapter";
+import {
+	DASHBOARD_VIEW_TYPE,
+	ReadingDashboardView,
+} from "./view/dashboard";
 
 const SCROLLER_SELECTOR = ".cm-scroller, .markdown-preview-view";
 
@@ -122,6 +126,7 @@ class ObsidianHost implements Host {
 
 export default class ReadingStatusPlugin extends Plugin {
 	private controller: ReadingStatusController | null = null;
+	private storage: StorageService | null = null;
 	private statusBarItem: HTMLElement | null = null;
 
 	async onload(): Promise<void> {
@@ -129,22 +134,63 @@ export default class ReadingStatusPlugin extends Plugin {
 			load: () => this.loadData(),
 			save: (data) => this.saveData(data),
 		};
+		this.storage = new StorageService(store);
 		const host = new ObsidianHost(this);
 		this.controller = new ReadingStatusController(
-			new StorageService(store),
+			this.storage,
 			host,
 			new SystemClock(),
 		);
 		this.controller.onStatusTextChanged = (text) => {
 			this.statusBarItem?.setText(text);
 		};
+		this.controller.onDataChanged = () => {
+			this.refreshDashboards();
+		};
 		this.statusBarItem = this.addStatusBarItem();
+
+		this.registerView(
+			DASHBOARD_VIEW_TYPE,
+			(leaf) =>
+				new ReadingDashboardView(leaf, this.storage as StorageService, () =>
+					Date.now(),
+				),
+		);
+		this.addRibbonIcon("book-open", "打开阅读仪表盘", () =>
+			void this.activateDashboard(),
+		);
+		this.addCommand({
+			id: "open-reading-dashboard",
+			name: "打开阅读仪表盘",
+			callback: () => void this.activateDashboard(),
+		});
+
 		await this.controller.start();
 	}
 
 	onunload(): void {
 		this.controller?.stop();
 		this.controller = null;
+		this.storage = null;
 		this.statusBarItem = null;
+		for (const leaf of this.app.workspace.getLeavesOfType(DASHBOARD_VIEW_TYPE)) {
+			leaf.detach();
+		}
+	}
+
+	private async activateDashboard(): Promise<void> {
+		const { workspace } = this.app;
+		const existing = workspace.getLeavesOfType(DASHBOARD_VIEW_TYPE);
+		const leaf = existing[0] ?? workspace.getLeaf("tab");
+		await leaf.setViewState({ type: DASHBOARD_VIEW_TYPE, active: true });
+		await workspace.revealLeaf(leaf);
+	}
+
+	private refreshDashboards(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(DASHBOARD_VIEW_TYPE)) {
+			if (leaf.view instanceof ReadingDashboardView) {
+				leaf.view.refresh();
+			}
+		}
 	}
 }

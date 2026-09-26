@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { formatDuration, formatStatusBar } from "../src/core/format";
+import {
+	formatDuration,
+	formatRelativeTime,
+	formatStatusBar,
+} from "../src/core/format";
 
 describe("formatDuration", () => {
 	it("formats minutes below one hour", () => {
@@ -48,5 +52,38 @@ describe("formatStatusBar", () => {
 				remainingChapters: 0,
 			}),
 		).toBe("阅读 2 次 · 0 分钟 · 100% · 剩 0 章");
+	});
+});
+
+describe("formatRelativeTime", () => {
+	const NOW = new Date(2026, 8, 26, 12, 0, 0).getTime();
+	const MIN = 60_000;
+	const HOUR = 3_600_000;
+
+	it("says just now for spans under one minute", () => {
+		expect(formatRelativeTime(NOW - 10_000, NOW)).toBe("刚刚");
+	});
+
+	it("uses minutes under one hour", () => {
+		expect(formatRelativeTime(NOW - 5 * MIN, NOW)).toBe("5 分钟前");
+		expect(formatRelativeTime(NOW - 59 * MIN, NOW)).toBe("59 分钟前");
+	});
+
+	it("uses hours under one day", () => {
+		expect(formatRelativeTime(NOW - 3 * HOUR, NOW)).toBe("3 小时前");
+		expect(formatRelativeTime(NOW - 23 * HOUR, NOW)).toBe("23 小时前");
+	});
+
+	it("uses days under one week", () => {
+		expect(formatRelativeTime(NOW - 3 * 24 * HOUR, NOW)).toBe("3 天前");
+		expect(formatRelativeTime(NOW - 6 * 24 * HOUR, NOW)).toBe("6 天前");
+	});
+
+	it("falls back to a local date beyond one week", () => {
+		expect(formatRelativeTime(new Date(2026, 8, 18, 12, 0, 0).getTime(), NOW)).toBe("2026-09-18");
+	});
+
+	it("reports future timestamps as just now", () => {
+		expect(formatRelativeTime(NOW + MIN, NOW)).toBe("刚刚");
 	});
 });
