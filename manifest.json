@@ -1,0 +1,9 @@
+{
+	"id": "reading-status",
+	"name": "Reading Status",
+	"version": "1.0.0",
+	"minAppVersion": "1.5.0",
+	"description": "Track reading status of your notes: visits, reading time, progress and chapters.",
+	"author": "Sugarcxne",
+	"isDesktopOnly": false
+}
