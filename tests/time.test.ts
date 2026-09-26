@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { localDayKey, startOfNextLocalDay } from "../src/core/time";
+import {
+	localDayKey,
+	startOfNextLocalDay,
+	startOfWeekLocal,
+} from "../src/core/time";
 
 describe("localDayKey", () => {
 	it("formats a local timestamp as YYYY-MM-DD", () => {
@@ -29,5 +33,26 @@ describe("startOfNextLocalDay", () => {
 		const morning = new Date(2026, 8, 26, 6, 0, 0).getTime();
 		const evening = new Date(2026, 8, 26, 22, 0, 0).getTime();
 		expect(startOfNextLocalDay(evening)).toBe(startOfNextLocalDay(morning));
+	});
+});
+
+describe("startOfWeekLocal", () => {
+	it("returns Monday midnight for a mid-week timestamp", () => {
+		// 2026-09-26 is a Saturday; its ISO week starts on Monday 2026-09-21.
+		const saturday = new Date(2026, 8, 26, 15, 0, 0).getTime();
+		const expectedMonday = new Date(2026, 8, 21, 0, 0, 0).getTime();
+		expect(startOfWeekLocal(saturday)).toBe(expectedMonday);
+	});
+
+	it("maps Sunday to the Monday six days earlier", () => {
+		const sunday = new Date(2026, 8, 27, 12, 0, 0).getTime();
+		const expectedMonday = new Date(2026, 8, 21, 0, 0, 0).getTime();
+		expect(startOfWeekLocal(sunday)).toBe(expectedMonday);
+	});
+
+	it("returns midnight of the same day for a Monday timestamp", () => {
+		const monday = new Date(2026, 8, 21, 9, 30, 0).getTime();
+		const expected = new Date(2026, 8, 21, 0, 0, 0).getTime();
+		expect(startOfWeekLocal(monday)).toBe(expected);
 	});
 });

@@ -24,3 +24,12 @@ export function startOfNextLocalDay(timestamp: number): number {
 	date.setHours(24, 0, 0, 0);
 	return date.getTime();
 }
+
+/** Midnight of the ISO week (Monday) containing the given timestamp. */
+export function startOfWeekLocal(timestamp: number): number {
+	const date = new Date(timestamp);
+	const daysSinceMonday = (date.getDay() + 6) % 7;
+	date.setHours(0, 0, 0, 0);
+	date.setDate(date.getDate() - daysSinceMonday);
+	return date.getTime();
+}
