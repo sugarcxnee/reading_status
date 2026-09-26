@@ -1,7 +1,9 @@
 /* Reading Status dashboard. All colors come from Obsidian CSS variables so
-   light and dark themes work without overrides. The root paints an opaque
-   theme background so themes and plugins that draw a workspace image behind
-   transparent views cannot bleed through the list. */
+   light and dark themes work without overrides. Themes and plugins that draw
+   a workspace image behind transparent views often make the background
+   variables translucent, so the alpha channel is forced back to 1 with
+   relative color syntax; the plain variable stays as a fallback for engines
+   without that syntax. */
 
 .reading-dashboard {
 	padding: 12px;
@@ -10,6 +12,7 @@
 	gap: 10px;
 	min-height: 100%;
 	background-color: var(--background-primary);
+	background-color: rgb(from var(--background-primary) r g b / 1);
 }
 
 .reading-dashboard-stats {
