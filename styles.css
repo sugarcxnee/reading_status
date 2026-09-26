@@ -1,11 +1,15 @@
 /* Reading Status dashboard. All colors come from Obsidian CSS variables so
-   light and dark themes work without overrides. */
+   light and dark themes work without overrides. The root paints an opaque
+   theme background so themes and plugins that draw a workspace image behind
+   transparent views cannot bleed through the list. */
 
 .reading-dashboard {
 	padding: 12px;
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
+	min-height: 100%;
+	background-color: var(--background-primary);
 }
 
 .reading-dashboard-stats {
