@@ -147,6 +147,11 @@ describe("listNoteSummaries with filters", () => {
 		);
 		expect(summaries.map((s) => s.path)).toEqual(["概率统计/讲义.md"]);
 	});
+
+	it("matches no notes when filtering by tag without a tag index", () => {
+		const summaries = listNoteSummaries(buildData(), { tag: "book" });
+		expect(summaries).toEqual([]);
+	});
 });
 
 describe("sorting", () => {
@@ -185,5 +190,14 @@ describe("sorting", () => {
 		];
 		const sorted = sortByLastRead(summaries);
 		expect(sorted.map((s) => s.path)).toEqual(["new", "old"]);
+	});
+
+	it("breaks ties by path for stable recency ordering", () => {
+		const summaries: NoteSummary[] = [
+			{ path: "z", openCount: 1, totalReadingMs: 0, firstReadAt: 0, lastReadAt: 500, maxProgress: 0 },
+			{ path: "a", openCount: 1, totalReadingMs: 0, firstReadAt: 0, lastReadAt: 500, maxProgress: 0 },
+		];
+		const sorted = sortByLastRead(summaries);
+		expect(sorted.map((s) => s.path)).toEqual(["a", "z"]);
 	});
 });
